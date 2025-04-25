@@ -1,0 +1,245 @@
+---
+title: "Assignment7"
+author:
+ name: Adrian Plonka
+ date: 20.04.2025
+
+format: 
+  html:
+      df-print: paged
+      tidy: false
+      embed-resources: true
+      theme: lumen
+      toc: true
+      toc-location: left
+      toc-depth: 6
+      toc-expand: 6
+      code-tools:
+        source: true
+        toggle: true
+      code-fold: false
+      code-summary: "Show the code"
+      code-overflow: wrap
+      page-layout: full
+editor: visual
+editor_options: 
+  markdown: 
+    wrap: 72
+execute:
+  cache: true
+---
+
+## Task
+
+Use **tidyr** and **dplyr** libraries whenever possible, to do the
+following:
+
+**Task 1:** Load the "iris" dataset and transform it to longer.
+
+-   tip: you should get 3 columns Species \| Trait \| Size
+
+**Task 2:** Answer the following questions.
+
+-   tip: you can answer each question "piping" only 2-3 commands
+
+**Task 2.1:** What is the **mean** **length** and **width** of the
+**sepal** and **petal** of each species?
+
+**Task 2.2:** What is the **largest** and **widest**,  **petal** and
+**sepal,**  of **virginica** and **versicolor** species?
+
+**Task 2.3:** For each species, for sepal and petal width and length,
+how many observations are above the mean?\*
+
+-   tip: adding the means as column might help
+
+**\***Might seem difficult (it is not that difficult if you know the
+tricks ;) ). If you don't manage to make it work, submit your best
+attempts and we will discuss it in class.
+
+**Task 3:** Deliver a link to GitHub containing the a **Quarto** file
+and the compiled **HTML**. It should contain explanations of what each
+chunk does. If you have private repository, remember to send me
+invitation so I can access it.
+
+## Task 1:
+
+-   Load the "iris" dataset and transform it to longer.
+
+First of all I load all the packages from tidyverse required for this
+assignment:
+
+```{r}
+library("tidyr")
+library("dplyr")
+
+```
+
+Loading the "iris" dataset, and displaying it, by deafult in paged table
+format
+
+```{r}
+data("iris")
+iris
+```
+
+Now to transform it into longer format, I use `pivot_longer()` function
+from *tidyr* package. I reshape the iris data frame into longer format,
+assigning a new *iris_longer* variable and using pipeline to connect it
+to `pivot_longer()` function. Species column is an identifier,
+Sepal.Width, Petal.Length, Petal.Width, Petal.Length are merged into one
+*Trait* column and values of these traits are all in *Size* column.
+
+```{r}
+iris_longer <- iris %>%
+  pivot_longer(cols=-Species, names_to="Trait", values_to="Size")
+iris_longer
+```
+
+## Task 2:
+
+-   Answer the following questions.
+
+### Task 2.1
+
+-   What is the **mean** **length** and **width** of the **sepal** and
+    **petal** of each species?
+
+To evaluate these means, first I grouped the *iris* data set by
+*Species* and then for each species using *summarise*, calculated all
+the means. *Mean_iris* is the new data frame containing means for all
+the species.
+
+```{r}
+mean_iris <- iris %>%
+  group_by(Species) %>%
+  summarise(mean_sepal_length = mean(Sepal.Length),
+            mean_sepal_width = mean(Sepal.Width),
+            mean_petal_length = mean(Petal.Length),
+            mean_petal_width = mean(Petal.Width))
+mean_iris
+```
+
+### Task 2.2
+
+-   What is the **largest** and **widest**,  **petal** and **sepal,** 
+    of **virginica** and **versicolor** species?
+
+Steps to to find these values
+
+1.  Create a new variable *large_wide* where the values will be stored
+2.  Filter *iris* data set for **virginica** and **versicolor** species
+3.  Group by species
+4.  Use summarise to evaluate maximum values of 4 columns -
+    *Petal.Length, Petal.Width,* *Sepal.Width, Sepal.Width*
+
+*large_wide* data frame contains 2 rows for 2 species and 4 columns with
+max values
+
+```{r}
+large_wide <- iris %>%
+  filter(Species %in% c("virginica", "versicolor")) %>%
+  group_by(Species) %>%
+  summarise(largest_petal = max(Petal.Length),
+            widest_petal = max(Petal.Width),
+            largest_sepal = max(Sepal.Length),
+            widest_sepal = max(Sepal.Width))
+large_wide
+
+```
+
+### Task 2.3
+
+-   For each species, for sepal and petal width and length, how many
+    observations are above the mean?
+
+I think there are 2 possible approaches to this task - all the
+parameters are above all the means or how many observations are above
+each of the mean.
+
+The first approach can be evaluated like this
+
+1.  Create a new variable where means for each parameters are stored
+2.  Group and summarise as it was done in the tasks before
+3.  `Left_join` *species_means* with *iris* data set by *Species*
+    column. Now *species_means* contains all parameters including the
+    means
+
+```{r}
+species_means <- iris %>%
+  group_by(Species) %>%
+  summarise(mean_sepal_length = mean(Sepal.Length),
+            mean_sepal_width = mean(Sepal.Width),
+            mean_petal_length = mean(Petal.Length),
+            mean_petal_width = mean(Petal.Width))
+iris_means <- left_join(species_means, iris, "Species")
+iris_means
+```
+
+4.  Create a new *above_mean* data frame
+5.  Filter with all parameters being above their means
+6.  Finally creating a last variable *number_above_mean* with two
+    columns containing numbers of observation above means for each
+    species
+
+```{r}
+above_mean <- iris_means %>% 
+  filter(Sepal.Length > mean_sepal_length,
+         Sepal.Width > mean_sepal_width,
+         Petal.Length > mean_petal_length,
+         Petal.Width > mean_petal_width) 
+
+number_above_mean <- above_mean %>%
+  count(Species, name = "Number above mean")
+number_above_mean
+```
+
+Now the second approach - counting observation for each species above
+mean of each parameters so 4 different numbers of obseravtions
+
+1.  The first three steps are the same as before
+
+```{r}
+species_means_1 <- iris %>%
+  group_by(Species) %>%
+  summarise(mean_sepal_length = mean(Sepal.Length),
+            mean_sepal_width = mean(Sepal.Width),
+            mean_petal_length = mean(Petal.Length),
+            mean_petal_width = mean(Petal.Width))
+iris_means_1 <- left_join(species_means_1, iris, "Species")
+iris_means_1
+
+```
+
+2.  Create 4 variables, each of them containing the number of
+    observations above mean for each parameter
+
+```{r}
+sl_above <- iris_means_1 %>%
+  filter(Sepal.Length > mean_sepal_length) %>%
+  count(Species, name = "Sepal_Length_Above")
+
+sw_above <- iris_means_1 %>%
+  filter(Sepal.Width > mean_sepal_width) %>%
+  count(Species, name = "Sepal_Width_Above")
+
+pl_above <- iris_means_1 %>%
+  filter(Petal.Length > mean_petal_length) %>%
+  count(Species, name = "Petal_Length_Above")
+
+pw_above <- iris_means %>%
+  filter(Petal.Width > mean_petal_width) %>%
+  count(Species, name = "Petal_Width_Above")
+```
+
+3.  `Full_join` all 4 data frame to get 1 summary, containing numbers of
+    observations for each parameter for each specie
+
+```{r}
+above_summary <- sl_above %>%
+  full_join(sw_above, by = "Species") %>%
+  full_join(pl_above, by = "Species") %>%
+  full_join(pw_above, by = "Species")
+above_summary
+
+```
